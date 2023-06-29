@@ -19,43 +19,48 @@ import java.util.List;
 
 public class Events implements Listener {
 
-    private static List<Material> helmetList = new ArrayList<>();
-    private static List<Material> chestplateList = new ArrayList<>();
-    private static List<Material> leggingsList = new ArrayList<>();
-    private static List<Material> bootsList = new ArrayList<>();
+    private static final List<Material> helmetList = new ArrayList<>();
+    private static final List<Material> chestplateList = new ArrayList<>();
+    private static final List<Material> leggingsList = new ArrayList<>();
+    private static final List<Material> bootsList = new ArrayList<>();
 
-    private HashMap<Player, HashMap<Player, String>> noKillList = new HashMap<>(); // Killer : Death-Having Player: TimestampOfDeath:::Amount
+    private HashMap<Player, HashMap<Player, String>> noKillList = new HashMap<>(); // Killer : Death-Having Player: TimestampOfFirstDeath:::TimesKilled
     private HashMap<Player, Long> lastBlockBroken = new HashMap<>();
 
-    /*
     @EventHandler
-    public void onHit(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player) {
-            Player damager = (Player) event.getDamager();
-            Player player = (Player) event.getEntity();
-            int count = 0;
-            for (ItemStack i : player.getInventory().getContents()) {
-                if (helmetList.contains(i))  count++;
-                if (chestplateList.contains(i)) count++;
-                if (leggingsList.contains(i))  count++;
-                if (bootsList.contains(i)) count++;
-            }
-            if (count ==  4) return;
-            for (ItemStack i : player.getInventory().getArmorContents()) {
-                if (i == null) {
-                    damager.sendMessage(ChatColor.translateAlternateColorCodes('&', "&b&lyesssirbox &8&l>> &cYou can't hurt this player, they don't have a full set of armor!"));
-                    event.setCancelled(true);
+    public void onDeath(PlayerDeathEvent event) {
+        if (event.getPlayer().getKiller() != null) {
+            String info = noKillList.get(event.getPlayer().getKiller()).get(event.getPlayer());
+            if (info != null) {
+                Long firstDeath = Long.parseLong(info.split(":::")[0]);
+                int timesKilled = Integer.parseInt(info.split(":::")[1]);
+                if ((((System.currentTimeMillis() - firstDeath) <= 180000) && timesKilled >= 5) || timesKilled >= 15) { // first death within three minutes ago
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.hasPermission("yesssirbox.notify")) {
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&b&lyesssirbox &8&l>> &c"+event.getPlayer().getKiller().getName()+" may be spam-killing "+event.getPlayer().getName()+". They have killed "+event.getPlayer().getName()+" "+timesKilled+" times in the last "+((firstDeath/1000)*60)+" minutes"));
+                        }
+                    }
                 }
             }
         }
     }
 
     @EventHandler
-    public void onDeath(PlayerDeathEvent event) {
-        if (event.getPlayer().getKiller() != null) {
-
+    public void onHit(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player)) {
+            int count = 0;
+            for (ItemStack i : ((Player)event.getDamager()).getInventory()) {
+                if (helmetList.contains(i.getType())) count++;
+                if (chestplateList.contains(i.getType())) count++;
+                if (leggingsList.contains(i.getType())) count++;
+                if (bootsList.contains(i.getType())) count++;
+            }
+            if (count != 4) {
+                event.getEntity().sendMessage(ChatColor.RED+"That person does not have a full set of armor - you cannot hit them!");
+                event.setCancelled(true);
+            }
         }
-    }*/
+    }
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
@@ -67,7 +72,7 @@ public class Events implements Listener {
             if ((time - lastBlockBroken.get(player)) <= 500) value = value/2;
             EconomyResponse res = Yesssirbox.econ.depositPlayer(player, value);
             if (res.transactionSuccess()) {
-                player.sendMessage(ChatColor.GREEN+"+$"+value);
+                Yesssirbox.updateActionBar(player, value);
             }
             else {
                 Yesssirbox.getPlugin(Yesssirbox.class).getLogger().warning("Could not deposit money into "+player.getName()+"'s account - "+res.errorMessage);
@@ -76,14 +81,6 @@ public class Events implements Listener {
         catch (NullPointerException ignored) {}
         lastBlockBroken.remove(player);
         lastBlockBroken.put(player, time);
-    }
-
-    private boolean canBeDamaged(Player damager, Player damaged) {
-        String[] data = noKillList.get(damager).get(damaged).split(":::");
-        if (Integer.parseInt(data[0]) == 3) {
-            return false;
-        }
-        return true;
     }
 
     public static void fillArmorLists() {
