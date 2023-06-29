@@ -3,3 +3,9 @@ version: 1.0
 main: xyz.skaerf.yesssirbox.Yesssirbox
 api-version: 1.18
 depend: [Vault]
+commands:
+  yesssirbox:
+    usage: /yesssirbox <reload/addBlock> [value]
+    aliases: [yb,ysb]
+  discord:
+    usage: /discord
