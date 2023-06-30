@@ -1,21 +1,17 @@
 package xyz.skaerf.yesssirbox;
 
-import net.kyori.adventure.text.ComponentLike;
-import net.kyori.adventure.text.format.Style;
-import net.md_5.bungee.api.ChatMessageType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Unmodifiable;
 import xyz.skaerf.yesssirbox.cmds.DiscordCommand;
 import xyz.skaerf.yesssirbox.cmds.YesssirboxCommand;
 
-import java.awt.*;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
 
 
@@ -60,51 +56,24 @@ public final class Yesssirbox extends JavaPlugin {
         String previous = actionBars.get(player);
         String toSend;
         if (previous != null) {
-            TextComponent comp;
-            String[] split = previous.split(" x");
-            if (split[0].contains(String.valueOf(value)) && (System.currentTimeMillis() - blockValues.get(player)) < 10000) {
-                // add to the multiplier number, but not if it was more than ten seconds ago that the last block was broken
-                toSend = "&a$"+value+" x"+Integer.parseInt(split[1])+value;
+            double oldValue = Double.parseDouble(previous.split("&a\\$")[1].split(" ")[0]);
+            if (String.valueOf(oldValue).equals(String.valueOf(value)) && (System.currentTimeMillis() - Events.lastBlockBroken.get(player)) < 10000) {
+                try {
+                    toSend = "&a$" + value + " x" + (Integer.parseInt(previous.split(" x")[1])+1);
+                }
+                catch (ArrayIndexOutOfBoundsException e) {
+                    toSend = "&a$" + value + " x2";
+                }
             }
             else {
                 toSend = "&a$"+value;
             }
-            player.sendActionBar(new net.kyori.adventure.text.TextComponent() {
-                @Override
-                public @NotNull String content() {
-                    return ChatColor.translateAlternateColorCodes('&', toSend);
-                }
-
-                @Override
-                public net.kyori.adventure.text.@NotNull TextComponent content(@NotNull String content) {
-                    return null;
-                }
-
-                @Override
-                public @NotNull Builder toBuilder() {
-                    return null;
-                }
-
-                @Override
-                public net.kyori.adventure.text.@NotNull TextComponent children(@NotNull List<? extends ComponentLike> children) {
-                    return null;
-                }
-
-                @Override
-                public net.kyori.adventure.text.@NotNull TextComponent style(@NotNull Style style) {
-                    return null;
-                }
-
-                @Override
-                public @Unmodifiable @NotNull List<net.kyori.adventure.text.Component> children() {
-                    return null;
-                }
-
-                @Override
-                public @NotNull Style style() {
-                    return null;
-                }
-            });
         }
+        else {
+            toSend = "&a$"+value;
+        }
+        TextComponent component = Component.text(ChatColor.translateAlternateColorCodes('&', toSend));
+        player.sendActionBar(component);
+        actionBars.put(player, toSend);
     }
 }
