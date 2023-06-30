@@ -22,7 +22,7 @@ public class YesssirboxCommand implements CommandExecutor {
         }
         else if (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("rl")) {
             pl.reloadConfig();
-            pl.saveConfig();
+            ShopCommand.setItems(pl.getConfig());
             sender.sendMessage(ChatColor.GREEN+"Config reloaded!");
         }
         else if (args[0].equalsIgnoreCase("addBlock") || args[0].equalsIgnoreCase("ab")) {

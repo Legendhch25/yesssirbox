@@ -1,5 +1,6 @@
 package xyz.skaerf.yesssirbox;
 
+import net.kyori.adventure.text.Component;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,7 +13,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import xyz.skaerf.yesssirbox.cmds.ShopCommand;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,6 +73,13 @@ public class Events implements Listener {
         catch (NullPointerException ignored) {}
         lastBlockBroken.remove(player);
         lastBlockBroken.put(player, time);
+    }
+
+    @EventHandler
+    public void onInvInteract(InventoryClickEvent event) {
+        if (event.getView().title().equals(ShopCommand.getShopInvName())) {
+            ShopCommand.inventoryClick(event);
+        }
     }
 
     public static void fillArmorLists() {

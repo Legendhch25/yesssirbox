@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import xyz.skaerf.yesssirbox.cmds.DiscordCommand;
+import xyz.skaerf.yesssirbox.cmds.ShopCommand;
 import xyz.skaerf.yesssirbox.cmds.YesssirboxCommand;
 
 import java.util.*;
@@ -30,6 +31,8 @@ public final class Yesssirbox extends JavaPlugin {
         setupEconomy();
         getCommand("yesssirbox").setExecutor(new YesssirboxCommand());
         getCommand("discord").setExecutor(new DiscordCommand());
+        getCommand("shop").setExecutor(new ShopCommand());
+        ShopCommand.setItems(this.getConfig());
     }
 
     private void setupEconomy() {

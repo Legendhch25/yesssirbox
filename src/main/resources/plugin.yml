@@ -9,3 +9,5 @@ commands:
     aliases: [yb,ysb]
   discord:
     usage: /discord
+  shop:
+    usage: /shop
