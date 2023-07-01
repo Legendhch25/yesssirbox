@@ -158,8 +158,21 @@ public class ShopCommand implements CommandExecutor {
             YSBItemStack item = toYSB.get(itemStack);
             EconomyResponse res = Yesssirbox.econ.withdrawPlayer(player, item.getValue());
             if (res.transactionSuccess()) {
+                int invLoc = 0;
                 for (ItemStack remove : item.getRequiredToCraft()) {
-                    player.getInventory().remove(remove);
+                    for (ItemStack inv : player.getInventory().getContents()) {
+                        if (inv == null) continue;
+                        if (inv.getType().equals(remove.getType())) {
+                            if (inv.getAmount() == remove.getAmount()) {
+                                player.getInventory().remove(inv);
+                            }
+                            else {
+                                ItemStack newStack = new ItemStack(inv.getType(), inv.getAmount()-remove.getAmount());
+                                player.getInventory().setItem(invLoc, newStack);
+                            }
+                        }
+                    }
+                    invLoc++;
                 }
                 player.updateInventory();
                 int iterator = 0;

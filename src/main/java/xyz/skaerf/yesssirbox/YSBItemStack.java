@@ -43,7 +43,7 @@ public class YSBItemStack extends ItemStack {
 
     public boolean canCraft(Player player) {
         for (ItemStack i : this.requiredToCraft) {
-            if (!player.getInventory().contains(i.getType())) {
+            if (!player.getInventory().contains(i.getType(), i.getAmount())) {
                 return false;
             }
         }
