@@ -1,5 +1,6 @@
 name: yesssirbox
-version: 1.0
+version: dev-1.5
+authors: [skaerf]
 main: xyz.skaerf.yesssirbox.Yesssirbox
 api-version: 1.18
 depend: [Vault]
@@ -11,3 +12,5 @@ commands:
     usage: /discord
   shop:
     usage: /shop
+  bounty:
+    usage: /bounty

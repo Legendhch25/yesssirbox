@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import xyz.skaerf.yesssirbox.cmds.BountyCommand;
 import xyz.skaerf.yesssirbox.cmds.DiscordCommand;
 import xyz.skaerf.yesssirbox.cmds.ShopCommand;
 import xyz.skaerf.yesssirbox.cmds.YesssirboxCommand;
@@ -32,6 +33,7 @@ public final class Yesssirbox extends JavaPlugin {
         getCommand("yesssirbox").setExecutor(new YesssirboxCommand());
         getCommand("discord").setExecutor(new DiscordCommand());
         getCommand("shop").setExecutor(new ShopCommand());
+        getCommand("bounty").setExecutor(new BountyCommand());
         ShopCommand.setItems(this.getConfig());
     }
 

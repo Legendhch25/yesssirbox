@@ -1,6 +1,8 @@
 package xyz.skaerf.yesssirbox;
 
+import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -10,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import xyz.skaerf.yesssirbox.cmds.ShopCommand;
@@ -17,6 +20,7 @@ import xyz.skaerf.yesssirbox.cmds.ShopCommand;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 public class Events implements Listener {
 
@@ -45,6 +49,27 @@ public class Events implements Listener {
             if (count < 4) {
                 event.getDamager().sendMessage(ChatColor.RED+"That person does not have a full set of armor - you cannot hit them!");
                 event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        List<String> bounties = Yesssirbox.getPlugin(Yesssirbox.class).getConfig().getStringList("bounties");
+        for (String line : bounties) {
+            if (UUID.fromString(line.split(":")[0]).equals(event.getEntity().getUniqueId())) {
+                double amount = Double.parseDouble(line.split(":")[1]);
+                EconomyResponse res = Yesssirbox.econ.depositPlayer(event.getEntity().getKiller(), amount);
+                if (res.transactionSuccess()) {
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        online.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c&lyesssirbox &8&l>> &aThe bounty on "+event.getPlayer().getName()+" for $"+amount+" has been claimed by "+event.getPlayer().getKiller().getName()+"!"));
+                    }
+                    bounties.remove(line);
+                    Yesssirbox.getPlugin(Yesssirbox.class).getConfig().set("bounties", bounties);
+                    Yesssirbox.getPlugin(Yesssirbox.class).saveConfig();
+                    Yesssirbox.getPlugin(Yesssirbox.class).reloadConfig();
+                    break;
+                }
             }
         }
     }

@@ -6,10 +6,12 @@ import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -19,9 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import xyz.skaerf.yesssirbox.YSBItemStack;
 import xyz.skaerf.yesssirbox.Yesssirbox;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class ShopCommand implements CommandExecutor {
 
@@ -72,9 +72,9 @@ public class ShopCommand implements CommandExecutor {
         List<String> savedItems = pl.getConfig().getStringList("shopItems");
         String newLine = "";
         // lists are split with ][
-        // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][
+        // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][::enchants][
         StringBuilder lore = new StringBuilder();
-        for (Component lor : item.getItemMeta().lore()) {
+        if (item.getItemMeta().lore() != null) for (Component lor : Objects.requireNonNull(item.getItemMeta().lore())) {
             lore.append(PlainTextComponentSerializer.plainText().serialize(lor) + "][");
         }
         lore = new StringBuilder(lore.substring(0, lore.length() - 2));
@@ -83,9 +83,14 @@ public class ShopCommand implements CommandExecutor {
             requiredToCraft.append(it.getType()+","+it.getAmount()+"][");
         }
         requiredToCraft = new StringBuilder(requiredToCraft.substring(0, requiredToCraft.length() - 2));
+        StringBuilder enchants = new StringBuilder();
+        for (Enchantment ench : item.getEnchantments().keySet()) {
+            enchants.append(ench.getKey()+","+item.getEnchantmentLevel(ench)+"][");
+        }
+        enchants = new StringBuilder(enchants.substring(0, enchants.length() - 2));
         String name = "0";
 
-        newLine = newLine + item.getType() + "::" + item.getAmount() + "::" + location + "::" + name + "::" + lore + "::" + item.getValue() + "::" + requiredToCraft;
+        newLine = newLine + item.getType() + "::" + item.getAmount() + "::" + location + "::" + name + "::" + lore + "::" + item.getValue() + "::" + requiredToCraft + "::" + enchants;
 
         savedItems.add(newLine);
         pl.getConfig().set("shopItems", savedItems);
@@ -123,7 +128,7 @@ public class ShopCommand implements CommandExecutor {
         List<String> items = config.getStringList("shopItems");
         for (String i : items) {
             // lists are split with ][
-            // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][
+            // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][::enchants][
             String[] vars = i.split("::");
             int amount = Integer.parseInt(vars[1]);
             int slot = Integer.parseInt(vars[2]);
@@ -138,8 +143,14 @@ public class ShopCommand implements CommandExecutor {
             for (String j : vars[6].split("]\\[")) {
                 requiredToCraft.add(new ItemStack(Material.valueOf(j.split(",")[0]), Integer.parseInt(j.split(",")[1])));
             }
-
+            Map<Enchantment, Integer> enchants = new HashMap<>();
+            for (String ench : vars[7].split("]\\[")) {
+                Enchantment enchValue = Enchantment.getByKey(NamespacedKey.fromString(ench.split(",")[0]));
+                int level = Integer.parseInt(ench.split(",")[1]);
+                enchants.put(enchValue, level);
+            }
             YSBItemStack toAdd = new YSBItemStack(Material.valueOf(vars[0]), amount);
+            toAdd.addUnsafeEnchantments(enchants);
             ItemMeta meta = toAdd.getItemMeta();
             if (!name.equals("0")) meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', name)));
             toAdd.setRequiredToCraft(requiredToCraft);
@@ -153,26 +164,14 @@ public class ShopCommand implements CommandExecutor {
     public static void inventoryClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         ItemStack itemStack = event.getCurrentItem();
+        if (itemStack == null) return;
         event.setCancelled(true);
         if (canTheyHaveIt.get(itemStack)) {
             YSBItemStack item = toYSB.get(itemStack);
             EconomyResponse res = Yesssirbox.econ.withdrawPlayer(player, item.getValue());
             if (res.transactionSuccess()) {
-                int invLoc = 0;
                 for (ItemStack remove : item.getRequiredToCraft()) {
-                    for (ItemStack inv : player.getInventory().getContents()) {
-                        if (inv == null) continue;
-                        if (inv.getType().equals(remove.getType())) {
-                            if (inv.getAmount() == remove.getAmount()) {
-                                player.getInventory().remove(inv);
-                            }
-                            else {
-                                ItemStack newStack = new ItemStack(inv.getType(), inv.getAmount()-remove.getAmount());
-                                player.getInventory().setItem(invLoc, newStack);
-                            }
-                        }
-                    }
-                    invLoc++;
+                    player.getInventory().removeItem(remove);
                 }
                 player.updateInventory();
                 int iterator = 0;
