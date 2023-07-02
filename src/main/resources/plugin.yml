@@ -1,5 +1,5 @@
 name: yesssirbox
-version: 1.0
+version: master-2.5
 main: xyz.skaerf.yesssirbox.Yesssirbox
 api-version: 1.18
 depend: [Vault]
