@@ -2,7 +2,6 @@ package xyz.skaerf.yesssirbox;
 
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -28,25 +27,36 @@ public class Events implements Listener {
     private static final List<Material> chestplateList = new ArrayList<>();
     private static final List<Material> leggingsList = new ArrayList<>();
     private static final List<Material> bootsList = new ArrayList<>();
-
-    private HashMap<Player, HashMap<Player, String>> noKillList = new HashMap<>(); // Killer : Death-Having Player: TimestampOfFirstDeath:::TimesKilled
     public static HashMap<Player, Long> lastBlockBroken = new HashMap<>();
 
     @EventHandler
     public void onHit(EntityDamageByEntityEvent event) {
         if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
-            int count = 0;
+            int countDamaged = 0;
+            int countDefender = 0;
             ((Player) event.getEntity()).updateInventory();
             ((Player) event.getDamager()).updateInventory();
             for (ItemStack i : ((Player)event.getEntity()).getInventory()) {
                 if (i != null) {
-                    if (helmetList.contains(i.getType())) count++;
-                    if (chestplateList.contains(i.getType())) count++;
-                    if (leggingsList.contains(i.getType())) count++;
-                    if (bootsList.contains(i.getType())) count++;
+                    if (helmetList.contains(i.getType())) countDamaged++;
+                    if (chestplateList.contains(i.getType())) countDamaged++;
+                    if (leggingsList.contains(i.getType())) countDamaged++;
+                    if (bootsList.contains(i.getType())) countDamaged++;
                 }
             }
-            if (count < 4) {
+            for (ItemStack i : ((Player)event.getDamager()).getInventory()) {
+                if (i != null) {
+                    if (helmetList.contains(i.getType())) countDefender++;
+                    if (chestplateList.contains(i.getType())) countDefender++;
+                    if (leggingsList.contains(i.getType())) countDefender++;
+                    if (bootsList.contains(i.getType())) countDefender++;
+                }
+            }
+            if (countDefender < 4) {
+                event.getDamager().sendMessage(ChatColor.RED + "You don't have any armor - you can't hit that person!");
+                event.setCancelled(true);
+            }
+            if (countDamaged < 4) {
                 event.getDamager().sendMessage(ChatColor.RED+"That person does not have a full set of armor - you cannot hit them!");
                 event.setCancelled(true);
             }

@@ -1,5 +1,5 @@
 name: yesssirbox
-version: dev-1.5
+version: master-2.5
 authors: [skaerf]
 main: xyz.skaerf.yesssirbox.Yesssirbox
 api-version: 1.18
