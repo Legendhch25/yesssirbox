@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,7 +26,7 @@ import java.util.*;
 
 public class ShopCommand implements CommandExecutor {
 
-    private static Component shopInvName = Component.text("Shop");
+    private static Component shopInvName = Component.text(ChatColor.YELLOW + "Mining Rewards");
     private static HashMap<Integer, YSBItemStack> shopItems = new HashMap<>();
     private static HashMap<ItemStack, YSBItemStack> toYSB = new HashMap<>();
     private static HashMap<ItemStack, Boolean> canTheyHaveIt = new HashMap<>();
@@ -33,7 +34,7 @@ public class ShopCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("go away");
+            sender.sendMessage("You must be a player to use this command.");
             return true;
         }
         if (args.length != 0 && sender.hasPermission("yesssirbox.admin")) {
@@ -53,17 +54,16 @@ public class ShopCommand implements CommandExecutor {
                 try {
                     slot = Integer.parseInt(args[1]);
                     cost = Double.parseDouble(args[2]);
-                }
-                catch (NumberFormatException e) {
-                    displayShop((Player)sender);
+                } catch (NumberFormatException e) {
+                    displayShop((Player) sender);
                     return true;
                 }
                 item.setValue(cost);
                 this.saveItemToConfig(item, slot);
-                sender.sendMessage(ChatColor.GREEN+"New item saved to config. Please reload the plugin's config (/ysb reload) to apply it to the shop GUI.");
+                sender.sendMessage(ChatColor.GREEN + "New item saved to config. Please reload the plugin's config (/ysb reload) to apply it to the shop GUI.");
             }
         }
-        displayShop((Player)sender);
+        displayShop((Player) sender);
         return true;
     }
 
@@ -75,17 +75,17 @@ public class ShopCommand implements CommandExecutor {
         // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][::enchants][
         StringBuilder lore = new StringBuilder();
         if (item.getItemMeta().lore() != null) for (Component lor : Objects.requireNonNull(item.getItemMeta().lore())) {
-            lore.append(PlainTextComponentSerializer.plainText().serialize(lor) + "][");
+            lore.append(PlainTextComponentSerializer.plainText().serialize(lor)).append("][");
         }
         lore = new StringBuilder(lore.substring(0, lore.length() - 2));
         StringBuilder requiredToCraft = new StringBuilder();
         for (ItemStack it : item.getRequiredToCraft()) {
-            requiredToCraft.append(it.getType()+","+it.getAmount()+"][");
+            requiredToCraft.append(it.getType()).append(",").append(it.getAmount()).append("][");
         }
         requiredToCraft = new StringBuilder(requiredToCraft.substring(0, requiredToCraft.length() - 2));
         StringBuilder enchants = new StringBuilder();
         for (Enchantment ench : item.getEnchantments().keySet()) {
-            enchants.append(ench.getKey()+","+item.getEnchantmentLevel(ench)+"][");
+            enchants.append(ench.getKey()).append(",").append(item.getEnchantmentLevel(ench)).append("][");
         }
         enchants = new StringBuilder(enchants.substring(0, enchants.length() - 2));
         String name = "0";
@@ -100,20 +100,19 @@ public class ShopCommand implements CommandExecutor {
     private static void displayShop(Player player) {
         Inventory shop = Bukkit.createInventory(null, 54, shopInvName);
 
-        // WOOD AXE
+        // Add items to the shop inventory
         for (int key : shopItems.keySet()) {
             YSBItemStack item = shopItems.get(key);
             List<Component> uneditedLore = item.lore();
             item.lore(item.addDependentLore(item.lore(), player));
             if (!item.canAfford(player) || !item.canCraft(player)) {
                 canTheyHaveIt.put(item.toItemStack(), false);
-            }
-            else {
+            } else {
                 canTheyHaveIt.put(item.toItemStack(), true);
             }
             shop.setItem(key, item.toItemStack());
             toYSB.put(item.toItemStack(), item);
-            // revert lore after adding it to inventory
+            // Revert lore after adding it to inventory
             item.lore(uneditedLore);
         }
 
@@ -127,7 +126,7 @@ public class ShopCommand implements CommandExecutor {
     public static void setItems(FileConfiguration config) {
         List<String> items = config.getStringList("shopItems");
         for (String i : items) {
-            // lists are split with ][
+            // Lists are split with ][
             // type::amount::locInShopInv::displayName::lore][::cost::requiredToCraft][::enchants][
             String[] vars = i.split("::");
             int amount = Integer.parseInt(vars[1]);
@@ -150,46 +149,37 @@ public class ShopCommand implements CommandExecutor {
                 enchants.put(enchValue, level);
             }
             YSBItemStack toAdd = new YSBItemStack(Material.valueOf(vars[0]), amount);
-            toAdd.addUnsafeEnchantments(enchants);
-            ItemMeta meta = toAdd.getItemMeta();
-            if (!name.equals("0")) meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', name)));
-            toAdd.setRequiredToCraft(requiredToCraft);
+            toAdd.setName(name);
+            toAdd.lore(lore);
             toAdd.setValue(value);
-            meta.lore(lore);
-            toAdd.setItemMeta(meta);
+            toAdd.setRequiredToCraft(requiredToCraft);
+            toAdd.setEnchantments(enchants);
             shopItems.put(slot, toAdd);
         }
     }
 
-    public static void inventoryClick(InventoryClickEvent event) {
-        Player player = (Player) event.getWhoClicked();
-        ItemStack itemStack = event.getCurrentItem();
-        if (itemStack == null) return;
-        event.setCancelled(true);
-        if (canTheyHaveIt.get(itemStack)) {
-            YSBItemStack item = toYSB.get(itemStack);
-            EconomyResponse res = Yesssirbox.econ.withdrawPlayer(player, item.getValue());
-            if (res.transactionSuccess()) {
-                for (ItemStack remove : item.getRequiredToCraft()) {
-                    player.getInventory().removeItem(remove);
-                }
-                player.updateInventory();
-                int iterator = 0;
-                for (ItemStack i : player.getInventory()) {
-                    if (i == null) {
-                        player.getInventory().setItem(iterator, item);
-                        player.sendMessage(ChatColor.GREEN+"Item is in your inventory!");
-                        player.closeInventory();
-                        displayShop(player);
-                        break;
-                    }
-                    iterator++;
-                }
-                player.updateInventory();
+    public static void buyItem(InventoryClickEvent e) {
+        Player p = (Player) e.getWhoClicked();
+        ItemStack clickedItem = e.getCurrentItem();
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+        YSBItemStack toBuy = toYSB.get(clickedItem);
+        if (toBuy == null) return;
+
+        if (canTheyHaveIt.get(clickedItem)) {
+            EconomyResponse response = Yesssirbox.getEconomy().withdrawPlayer(p, toBuy.getValue());
+            if (response.transactionSuccess()) {
+                p.getInventory().addItem(toBuy.toItemStack());
+                p.sendMessage(ChatColor.GREEN + "Purchase successful!");
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
+            } else {
+                p.sendMessage(ChatColor.RED + "You do not have enough money to purchase this item.");
+                p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 1f, 1f);
             }
-            else {
-                player.sendMessage(ChatColor.RED+"Payment did not go through.");
-            }
+        } else {
+            p.sendMessage(ChatColor.RED + "You cannot afford this item or do not have the required materials to craft it.");
+            p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 1f, 1f);
         }
+        e.setCancelled(true);
+        p.closeInventory();
     }
 }
